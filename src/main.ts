@@ -30,7 +30,7 @@ export default class ThePlugin extends Plugin {
         await this.loadSettings();
         this.dv = getAPI(this.app);
         this.rootPath = this.app.vault.adapter.getBasePath();
-        this.regex = /\[\[(.+?)(\|.*?)?\]\]/;
+        this.regex = /\[\[(.+?)(#.*?)?(\|.*?)?\]\]/;
         this.navboxFiles = this.app.vault
             .getMarkdownFiles()
             .filter((f) => this.app.metadataCache.getFileCache(f).frontmatter?.navbox);
@@ -45,7 +45,6 @@ export default class ThePlugin extends Plugin {
         );
         this.registerEvent(
             this.app.metadataCache.on("dataview:metadata-change", (type, file) => {
-                console.log(type);
                 this.updateFiles(file);
             })
         );
@@ -62,7 +61,7 @@ export default class ThePlugin extends Plugin {
         //         }
         //     },
         // });
-        this.addSettingTab(new TheSettingTab(this.app, this));
+        // this.addSettingTab(new TheSettingTab(this.app, this));
     }
     async updateFiles(file: TFile) {
         if (this.navboxFiles.includes(file))
@@ -158,50 +157,66 @@ class Navbox extends Component {
             this.app,
             `[[${this.file.basename}|${this.title}]]`,
             th,
-            this.plugin.rootPath + "/" + path,
+            this.plugin.rootPath + "/" + this.file.path,
             null
         );
         let a = th.querySelector("a.internal-link") as HTMLElement;
-        a.addEventListener("click", (e) => {
-            e.preventDefault();
-            openFile(e, this.file);
-        });
-        a.style.textDecoration = "none";
+        clickOpenFile(a, this.file, "", this.plugin);
 
         this.listItems.forEach(async (listItem) => {
             let text = listItem.children
-                .map((p) => (p.path == path ? `**${p.display ?? p.name}**` : `[[${p.name}]]`))
+                .map((p) =>
+                    p.path == path
+                        ? `**${p.display ?? p.name}**`
+                        : `[[${p.name}|${p.display ?? p.name}]]`
+                )
                 .filter((p) => p);
             if (text.length == 0) return;
 
             tr = table.tBodies[0].insertRow();
-            let td = tr.createEl("td", { text: listItem.title });
+            let td = tr.createEl("td");
+            MarkdownRenderer.render(
+                this.app,
+                listItem.title,
+                td,
+                this.plugin.rootPath + "/" + this.file.path,
+                null
+            );
+            let a1 = td.querySelector("a.internal-link") as HTMLElement;
+            let file = Text2TFile(listItem.title, this.plugin.regex, this.app, this.file);
+            clickOpenFile(a1, file, file.basename, this.plugin);
 
             td = tr.createEl("td");
             await MarkdownRenderer.render(
                 this.app,
-                text.join(" **·** "),
+                text.join(' <span style="font-weight: 700">·</span> '),
                 td,
-                this.plugin.rootPath + "/" + path,
+                this.plugin.rootPath + "/" + this.file.path,
                 null
             );
-            let a = td.querySelectorAll("a.internal-link") as NodeListOf<HTMLElement>;
-            a.forEach((p) => {
-                p.style.textDecoration = "none";
-                p.addEventListener("click", (e) => {
-                    let name = p.getAttribute("data-href");
-                    let file = listItem.children.find((p) => p.name == name).file;
-                    openFile(e, file);
-                });
+            let a2 = td.querySelectorAll("a.internal-link") as NodeListOf<HTMLElement>;
+            a2.forEach((p) => {
+                let name = p.getAttribute("data-href");
+                let children = listItem.children.find((p) => p.name == name);
+                clickOpenFile(p, children.file, children.linkText, this.plugin);
             });
         });
     }
 }
 
-function openFile(e: Event, file: TFile) {
-    let m = Keymap.isModEvent(e as UserEvent);
-    if (m) this.app.workspace.getLeaf(m).openFile(file);
-    else this.app.workspace.getMostRecentLeaf().openFile(file);
+function clickOpenFile(el: HTMLElement, file: TFile, linkText: string, plugin: ThePlugin) {
+    if (linkText.includes("#"))
+        el.addEventListener("click", (e) => {
+            let m = Keymap.isModEvent(e as UserEvent);
+            if (m) plugin.app.workspace.getLeaf(m).openLinkText(linkText, file.path, null);
+            else plugin.app.workspace.getMostRecentLeaf().openLinkText(linkText, file.path, null);
+        });
+    else
+        el.addEventListener("click", (e) => {
+            let m = Keymap.isModEvent(e as UserEvent);
+            if (m) plugin.app.workspace.getLeaf(m).openFile(file);
+            else plugin.app.workspace.getMostRecentLeaf().openFile(file);
+        });
 }
 
 type ListItem = {
@@ -217,6 +232,7 @@ type ListItemChildren = {
     file: TFile;
     path: string;
     display?: string;
+    linkText: string;
 };
 
 async function TFile2Navbox(
@@ -230,7 +246,8 @@ async function TFile2Navbox(
         dv = plugin.dv,
         dfile = dv.page(file.path),
         lists = dfile.file.lists.groupBy((p) => p.list),
-        listItems: ListItem[] = [];
+        listItems: ListItem[] = [],
+        headers = app.metadataCache.getFileCache(file)?.headings;
     for (let i = 0; i < lists.length; i++) {
         let list: any[] = lists[i].rows.array();
         if (list.some((p) => p.children.length != 0)) {
@@ -259,15 +276,19 @@ async function TFile2Navbox(
                     outlinks: [],
                     children: [],
                 };
-            if (!line || line == "") listItem.title = list[0].header.subpath;
-            else listItem.title = line;
             listItem.file = file;
             listItem.path = file.path;
+            if (!line || line == "") {
+                listItem.title = headers
+                    .filter((p) => p.position.start.line < list[0].position.start.line)
+                    .sort((p) => p.position.start.line)
+                    .reverse()[0].heading;
+            } else listItem.title = line;
             listItem.children = list
                 .filter((p) => !p?.parent)
                 .map((p) => Text2ListItemChildren(p.text, regex, app, file))
                 .filter((p) => p);
-            if (listItem.children.length == 0) continue;
+            // if (listItem.children.length < 2) continue;
             listItem.outlinks = listItem.children.map((p) => p.path);
             listItems.push(listItem);
         }
@@ -283,13 +304,24 @@ function Text2ListItemChildren(
 ): ListItemChildren {
     let t = regex.exec(text);
     if (!t?.[1]) return null;
-    if (t[1].length / text.length < 1 / 25) return null;
+    if (!text.startsWith(t?.[0])) return null;
+    // if (t[1].length / text.length < 1 / 25) return null;
     let tfile = app.metadataCache.getFirstLinkpathDest(t[1], file.path);
     if (!tfile) return null;
     return {
         file: tfile,
         path: tfile.path,
         name: t[1],
-        display: t?.[2]?.slice(1),
+        linkText: t[1] + (t?.[2] ?? ""),
+        display: t?.[3]?.slice(1),
     } as ListItemChildren;
+}
+
+function Text2TFile(text: string, regex: RegExp, app: App, file: TFile): TFile {
+    let t = regex.exec(text);
+    if (!t?.[1]) return null;
+    if (!text.startsWith(t?.[0])) return null;
+    let tfile = app.metadataCache.getFirstLinkpathDest(t[1], file.path);
+    if (!tfile) return null;
+    return tfile;
 }
