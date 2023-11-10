@@ -1,5 +1,7 @@
 # Obsidian Wiki Navbox
 
+![Alt text](%E5%89%AA%E8%B4%B4%E6%9D%BF%E5%9B%BE%E7%89%87.jpg)
+
 ## Contributing
 
 To make changes to this plugin, first ensure you have the dependencies installed.

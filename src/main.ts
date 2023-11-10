@@ -37,12 +37,21 @@ export default class ThePlugin extends Plugin {
         this.navboxs = await Promise.all(
             this.navboxFiles.map((f) => TFile2Navbox(f, this.regex, this.app, this))
         );
-        this.updateViews();
+
+        let leafs = this.app.workspace.getLeavesOfType("markdown");
+        this.updateLeafs(leafs);
         this.registerEvent(
             this.app.workspace.on("file-open", () => {
-                this.updateViews();
+                let leafs = this.app.workspace.getLeavesOfType("markdown");
+                this.updateLeafs(leafs);
             })
         );
+        // this.registerEvent(
+        //     this.app.workspace.on("active-leaf-change", (leaf) => {
+        //         console.log("aaa");
+        //         this.updateViews([leaf]);
+        //     })
+        // );
         this.registerEvent(
             this.app.metadataCache.on("dataview:metadata-change", (type, file) => {
                 this.updateFiles(file);
@@ -64,30 +73,30 @@ export default class ThePlugin extends Plugin {
         // this.addSettingTab(new TheSettingTab(this.app, this));
     }
     async updateFiles(file: TFile) {
-        if (this.navboxFiles.includes(file))
+        if (this.navboxFiles.includes(file)) {
+            this.navboxFiles = this.app.vault
+                .getMarkdownFiles()
+                .filter((f) => this.app.metadataCache.getFileCache(f).frontmatter?.navbox);
             this.navboxs = await Promise.all(
                 this.navboxFiles.map((f) => TFile2Navbox(f, this.regex, this.app, this))
             );
-        else if (this.app.metadataCache.getFileCache(file).frontmatter?.navbox) {
+        } else if (this.app.metadataCache.getFileCache(file).frontmatter?.navbox) {
             this.navboxFiles.push(file);
             this.navboxs.push(await TFile2Navbox(file, this.regex, this.app, this));
         }
     }
-    updateViews() {
-        let leafs = this.app.workspace.getLeavesOfType("markdown");
+    updateLeafs(leafs) {
         leafs.forEach((l) => {
             let file = l.view.file;
             let navboxs = this.navboxs.filter((n) => n.outlinks.includes(file.path));
-            let sizer = l.view.containerEl.querySelector(".cm-sizer") as HTMLElement;
-            let div = sizer.querySelector(".navbox-div") as HTMLElement;
-            if (!div) div = sizer.createEl("div", { cls: "navbox-div" });
+            let mode = l.view.getMode();
+            let class_ = mode == "source" ? ".cm-sizer" : ".mod-footer";
+            let el = l.view.containerEl.querySelector(class_) as HTMLElement;
+            // let modfooter = l.view.containerEl.querySelector(".mod-footer") as HTMLElement;
+            let div = el.querySelector(".navbox-div") as HTMLElement;
+            if (!div) div = el.createEl("div", { cls: "navbox-div" });
             div.empty();
             navboxs.forEach((n) => n.render(div, file.path));
-            // let modfooter = l.view.containerEl.querySelector(".mod-footer") as HTMLElement;
-            // div = modfooter.querySelector(".navbox-div") as HTMLElement;
-            // if (!div) div = modfooter.createEl("div", { cls: "navbox-div" });
-            // div.empty();
-            // navboxs.forEach((n) => n.render(div, file.path));
         });
     }
     onunload() {}
@@ -184,7 +193,7 @@ class Navbox extends Component {
             );
             let a1 = td.querySelector("a.internal-link") as HTMLElement;
             let file = Text2TFile(listItem.title, this.plugin.regex, this.app, this.file);
-            clickOpenFile(a1, file, file.basename, this.plugin);
+            if(a1) clickOpenFile(a1, file, file.basename, this.plugin);
 
             td = tr.createEl("td");
             await MarkdownRenderer.render(
