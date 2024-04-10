@@ -24,17 +24,16 @@ export default class NavboxManager extends Component {
             r.empty();
             this.removeChild(r);
         });
+        this.plugin.checkNavbox();
         setTimeout(() => {
             this.render_(file);
         }, 100);
     }
     render_(file: TFile) {
-        this.datas = this.plugin.navDatas.filter((n) => n.outlinks.includes(file.path));
-        this.renderers = this.datas.map((d) => {
-            let r = new NavboxRenderer(this.plugin.app, d, this.plugin);
-            this.addChild(r);
-            return r;
-        });
+        this.datas = this.plugin.navDatas.filter(
+            (n) => n.outlinks.includes(file.path) || n.file.path == file.path
+        );
+        this.renderers = this.datas.map((d) => this.addChild(new NavboxRenderer(d, this.plugin)));
 
         let mode = this.view.getMode();
         let containerEl = this.view.containerEl;

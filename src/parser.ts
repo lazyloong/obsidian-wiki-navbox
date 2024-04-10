@@ -2,15 +2,10 @@ import { App, TFile } from "obsidian";
 import ThePlugin from "./main";
 import NavData from "./data";
 
-export default async function TFile2NavData(
-    file: TFile,
-    regex: RegExp,
-    app: App,
-    plugin: ThePlugin
-): Promise<NavData> {
+export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Promise<NavData> {
+    let { app, regex, dv } = plugin;
     let content = await app.vault.cachedRead(file),
         lines = content.split("\n"),
-        dv = plugin.dv,
         dfile = dv.page(file.path),
         lists = dfile.file.lists.groupBy((p) => p.list),
         listItems: ListItem[] = [],
@@ -60,7 +55,13 @@ export default async function TFile2NavData(
             listItems.push(listItem);
         }
     }
-    return new NavData(app, listItems, file);
+    let navbox = app.metadataCache.getFileCache(file).frontmatter?.navbox;
+    return {
+        file,
+        listItems,
+        outlinks: listItems.map((p) => p.outlinks).flat(),
+        title: typeof navbox == "string" ? navbox : file.basename,
+    };
 }
 
 function Text2ListItemChildren(

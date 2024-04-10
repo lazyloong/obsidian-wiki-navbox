@@ -8,30 +8,23 @@ import {
     WorkspaceLeaf,
     Menu,
 } from "obsidian";
-import { ListItem } from "obsidian-dataview";
 import ThePlugin from "./main";
 import NavData from "./data";
 
 export default class NavboxRenderer extends Component {
     plugin: ThePlugin;
     app: App;
-    file: TFile;
-    listItems: ListItem[];
+    navdata: NavData;
     tableEl: HTMLDivElement;
-    outlinks: string[];
     regex: RegExp;
-    title: string;
-    constructor(app: App, navdata: NavData, plugin: ThePlugin) {
+    constructor(navdata: NavData, plugin: ThePlugin) {
         super();
-        this.app = app;
+        this.app = plugin.app;
         this.plugin = plugin;
-        this.file = navdata.file;
-        this.listItems = navdata.listItems;
-        this.outlinks = this.listItems.map((p) => p.outlinks).flat();
-        let navbox = this.app.metadataCache.getFileCache(this.file).frontmatter?.navbox;
-        this.title = typeof navbox == "string" ? navbox : this.file.basename;
+        this.navdata = navdata;
     }
     render(root: Element, path: string) {
+        let { file, title, listItems, outlinks } = this.navdata;
         this.tableEl = root.createEl("div", { cls: "wiki-navbox" });
         let table = this.tableEl.createEl("table");
         table.createTHead();
@@ -42,15 +35,15 @@ export default class NavboxRenderer extends Component {
         th.style.fontWeight = "700";
         MarkdownRenderer.render(
             this.app,
-            `[[${this.file.basename}|${this.title}]]`,
+            `[[${file.basename}|${title}]]`,
             th,
-            this.plugin.rootPath + "/" + this.file.path,
+            this.plugin.rootPath + "/" + file.path,
             this
         );
         let a = th.querySelector("a.internal-link") as HTMLElement;
-        clickOpenFile(a, this.file, "", this.plugin);
+        clickOpenFile(a, file, "", this.plugin);
 
-        this.listItems.forEach(async (listItem) => {
+        listItems.forEach(async (listItem) => {
             let text = listItem.children
                 .map((p) =>
                     p.path == path
@@ -66,19 +59,19 @@ export default class NavboxRenderer extends Component {
                 this.app,
                 listItem.title,
                 td,
-                this.plugin.rootPath + "/" + this.file.path,
+                this.plugin.rootPath + "/" + file.path,
                 this
             );
             let a1 = td.querySelector("a.internal-link") as HTMLElement;
-            let file = Text2TFile(listItem.title, this.plugin.regex, this.app, this.file);
-            if (a1) clickOpenFile(a1, file, file.basename, this.plugin);
+            let file_ = Text2TFile(listItem.title, this.plugin.regex, this.app, file);
+            if (a1) clickOpenFile(a1, file_, file.basename, this.plugin);
 
             td = tr.createEl("td");
             await MarkdownRenderer.render(
                 this.app,
                 text.join(' <span style="font-weight: 700">·</span> '),
                 td,
-                this.plugin.rootPath + "/" + this.file.path,
+                this.plugin.rootPath + "/" + file.path,
                 this
             );
             let a2 = td.querySelectorAll("a.internal-link") as NodeListOf<HTMLElement>;

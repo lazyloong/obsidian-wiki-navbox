@@ -12,7 +12,6 @@ const DEFAULT_SETTINGS: TheSettings = {
 };
 export default class ThePlugin extends Plugin {
     settings: TheSettings;
-    leafs: WorkspaceLeaf[];
     navboxFiles: TFile[];
     navDatas: NavData[];
     dv: DataviewApi;
@@ -23,54 +22,64 @@ export default class ThePlugin extends Plugin {
         this.dv = getAPI(this.app);
         this.rootPath = this.app.vault.adapter.getBasePath();
         this.regex = /\[\[(.+?)(#.*?)?(\|.*?)?\]\]/;
-        this.navboxFiles = this.app.vault
-            .getMarkdownFiles()
-            .filter((f) => this.app.metadataCache.getFileCache(f).frontmatter?.navbox);
-        this.navDatas = await Promise.all(
-            this.navboxFiles.map((f) => TFile2NavData(f, this.regex, this.app, this))
-        );
+
+        runOnLayoutReady(() => {
+            this.loadNavData();
+            this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
+                this.leafAddManager(leaf);
+            });
+        });
 
         this.registerEvent(
             this.app.workspace.on("file-open", () => {
                 let leaf = this.app.workspace.getMostRecentLeaf();
-                if (leaf.view.getViewType() != "markdown") return;
-                let view = leaf.view as MarkdownView;
-                if (view.navboxManager) {
-                    view.navboxManager.render(view.file);
-                } else {
-                    let manager = new NavboxManager(view, this);
-                    view.addChild(manager);
-                    view.navboxManager = manager;
-                }
+                this.leafAddManager(leaf);
             })
         );
         this.registerEvent(
             this.app.workspace.on("active-leaf-change", (leaf) => {
-                if (leaf.view.getViewType() != "markdown") return;
-                const view = leaf.view as MarkdownView;
-                if (!view.navboxManager) return;
-                let manager = new NavboxManager(view, this);
-                view.addChild(manager);
-                view.navboxManager = manager;
+                this.leafAddManager(leaf);
             })
         );
         this.registerEvent(
             this.app.metadataCache.on("changed", (file) => {
-                this.updateFiles(file);
+                this.updateNavData(file);
             })
         );
     }
-    async updateFiles(file: TFile) {
+    async updateNavData(file: TFile) {
         if (this.navboxFiles.includes(file)) {
-            this.navboxFiles = this.app.vault
-                .getMarkdownFiles()
-                .filter((f) => this.app.metadataCache.getFileCache(f).frontmatter?.navbox);
-            this.navDatas = await Promise.all(
-                this.navboxFiles.map((f) => TFile2NavData(f, this.regex, this.app, this))
-            );
+            this.navDatas = this.navDatas.filter((d) => d.file.path != file.path);
+            if (this.app.metadataCache.getFileCache(file).frontmatter?.navbox)
+                this.navDatas.push(await TFile2NavData(file, this));
+            else this.navboxFiles = this.navboxFiles.filter((f) => f.path != file.path);
         } else if (this.app.metadataCache.getFileCache(file).frontmatter?.navbox) {
             this.navboxFiles.push(file);
-            this.navDatas.push(await TFile2NavData(file, this.regex, this.app, this));
+            this.navDatas.push(await TFile2NavData(file, this));
+        }
+    }
+    loadNavData() {
+        this.navboxFiles = this.app.vault
+            .getMarkdownFiles()
+            .filter((f) => this.app.metadataCache.getFileCache(f).frontmatter?.navbox);
+        this.navDatas = [];
+        this.navboxFiles.forEach(async (f) => this.navDatas.push(await TFile2NavData(f, this)));
+    }
+    checkNavbox(): boolean {
+        let set = new Set(this.navDatas.map((d) => d.file.path));
+        let check = this.navboxFiles.every((f) => set.has(f.path));
+        if (!check) this.loadNavData();
+        return check;
+    }
+    leafAddManager(leaf: WorkspaceLeaf) {
+        if (leaf.view.getViewType() != "markdown") return;
+        let view = leaf.view as MarkdownView;
+        if (view.navboxManager) {
+            view.navboxManager.render(view.file);
+        } else {
+            let manager = new NavboxManager(view, this);
+            view.addChild(manager);
+            view.navboxManager = manager;
         }
     }
     onunload() {}
@@ -80,4 +89,9 @@ export default class ThePlugin extends Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
     }
+}
+
+function runOnLayoutReady(calback: Function) {
+    if (app.workspace.layoutReady) calback();
+    else app.workspace.onLayoutReady(() => calback());
 }
