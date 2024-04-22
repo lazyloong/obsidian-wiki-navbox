@@ -93,7 +93,7 @@ export type ListItem = {
     children: ListItemChildren[];
 };
 
-type ListItemChildren = {
+export type ListItemChildren = {
     name: string;
     file: TFile;
     path: string;

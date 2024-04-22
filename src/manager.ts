@@ -20,14 +20,13 @@ export default class NavboxManager extends Component {
         this.render(this.view.file);
     }
     render(file: TFile) {
-        this.renderers.forEach((r) => {
-            r.empty();
-            this.removeChild(r);
-        });
+        this.renderers.forEach((r) => this.removeChild(r));
         this.plugin.checkNavbox();
-        setTimeout(() => {
-            this.render_(file);
-        }, 100);
+        let f = () => {
+            if (this.getToAddElement()) this.render_(file);
+            else setTimeout(f, 10);
+        };
+        f();
     }
     render_(file: TFile) {
         this.datas = this.plugin.navDatas.filter(
@@ -35,17 +34,19 @@ export default class NavboxManager extends Component {
         );
         this.renderers = this.datas.map((d) => this.addChild(new NavboxRenderer(d, this.plugin)));
 
-        let mode = this.view.getMode();
-        let containerEl = this.view.containerEl;
-        let toAppendElement: Element;
-
-        toAppendElement = containerEl.querySelector(mode == "source" ? ".cm-sizer" : ".mod-footer");
+        let toAppendElement = this.getToAddElement();
 
         let div =
-            toAppendElement.querySelector(".navbox-div") ??
+            toAppendElement.querySelector<HTMLDivElement>(".navbox-div") ??
             toAppendElement.createEl("div", { cls: "navbox-div" });
         div.empty();
         div.parentElement.appendChild(div);
         this.renderers.forEach((n) => n.render(div, file.path));
+        div.style.minHeight = div.offsetHeight + "px";
+    }
+    getToAddElement() {
+        let mode = this.view.getMode();
+        let containerEl = this.view.containerEl;
+        return containerEl.querySelector(mode == "source" ? ".cm-sizer" : ".mod-footer");
     }
 }

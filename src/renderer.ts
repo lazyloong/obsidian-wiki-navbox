@@ -10,6 +10,7 @@ import {
 } from "obsidian";
 import ThePlugin from "./main";
 import NavData from "./data";
+import Link from "./linkComponent";
 
 export default class NavboxRenderer extends Component {
     plugin: ThePlugin;
@@ -32,26 +33,11 @@ export default class NavboxRenderer extends Component {
         let tr = table.tHead.insertRow();
         let th = tr.createEl("th");
         th.colSpan = 2;
-        th.style.fontWeight = "700";
-        MarkdownRenderer.render(
-            this.app,
-            `[[${file.basename}|${title}]]`,
-            th,
-            this.plugin.rootPath + "/" + file.path,
-            this
-        );
-        let a = th.querySelector("a.internal-link") as HTMLElement;
-        clickOpenFile(a, file, "", this.plugin);
+        if (path == file.path) th.createEl("strong", { text: title });
+        else new Link(file, title, th, this.plugin);
 
         listItems.forEach(async (listItem) => {
-            let text = listItem.children
-                .map((p) =>
-                    p.path == path
-                        ? `**${p.display ?? p.name}**`
-                        : `[[${p.name}|${p.display ?? p.name}]]`
-                )
-                .filter((p) => p);
-            if (text.length == 0) return;
+            if (listItem.children.length == 0) return;
 
             tr = table.tBodies[0].insertRow();
             let td = tr.createEl("td");
@@ -67,22 +53,15 @@ export default class NavboxRenderer extends Component {
             if (a1) clickOpenFile(a1, file_, file.basename, this.plugin);
 
             td = tr.createEl("td");
-            await MarkdownRenderer.render(
-                this.app,
-                text.join(' <span style="font-weight: 700">·</span> '),
-                td,
-                this.plugin.rootPath + "/" + file.path,
-                this
-            );
-            let a2 = td.querySelectorAll("a.internal-link") as NodeListOf<HTMLElement>;
-            a2.forEach((p) => {
-                let name = p.getAttribute("data-href");
-                let children = listItem.children.find((p) => p.name == name);
-                clickOpenFile(p, children.file, children.linkText, this.plugin);
+            listItem.children.forEach((p, i) => {
+                if (i > 0) td.createEl("strong", { cls: "wiki-navbox-separator", text: "·" });
+                if (p.file.path == path)
+                    td.createEl("strong", { text: p.display ?? p.file.basename });
+                else new Link(p.file, p.display, td, this.plugin);
             });
         });
     }
-    empty() {
+    onunload(): void {
         this.tableEl.empty();
     }
 }
