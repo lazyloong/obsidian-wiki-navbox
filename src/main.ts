@@ -1,5 +1,4 @@
-import { Plugin, TFile, WorkspaceLeaf, MarkdownView } from "obsidian";
-import { getAPI, DataviewApi } from "obsidian-dataview";
+import { Plugin, TFile, WorkspaceLeaf, MarkdownView, TFolder } from "obsidian";
 import NavData from "./data";
 import TFile2NavData from "./parser";
 import NavboxManager from "./manager";
@@ -14,20 +13,27 @@ export default class ThePlugin extends Plugin {
     settings: TheSettings;
     navboxFiles: TFile[];
     navDatas: NavData[];
-    dv: DataviewApi;
-    rootPath: string;
-    regex: RegExp;
     async onload() {
         await this.loadSettings();
-        this.dv = getAPI(this.app);
-        this.rootPath = this.app.vault.adapter.getBasePath();
-        this.regex = /\[\[(.+?)(#.*?)?(\|.*?)?\]\]/;
 
         runOnLayoutReady(() => {
             this.loadNavData();
             this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
                 this.leafAddManager(leaf);
             });
+            this.registerEvent(
+                this.app.vault.on("create", (file) => {
+                    if (file instanceof TFolder) return;
+                    let file_ = file as TFile;
+                    this.navDatas
+                        .filter((p) =>
+                            p.listItems.some((p) =>
+                                p.children.find((p) => !p.file && p.name == file_.basename)
+                            )
+                        )
+                        .forEach((p) => this.updateNavData(p.file));
+                })
+            );
         });
 
         this.registerEvent(
@@ -46,6 +52,22 @@ export default class ThePlugin extends Plugin {
                 this.updateNavData(file);
             })
         );
+        this.registerEvent(
+            this.app.vault.on("rename", (file, oldPath) => {
+                if (file instanceof TFolder) return;
+                this.navDatas
+                    .filter((p) => p.outlinks.includes(oldPath))
+                    .forEach((p) => this.updateNavData(p.file));
+            })
+        );
+        this.registerEvent(
+            this.app.vault.on("delete", (file) => {
+                if (file instanceof TFolder) return;
+                this.navDatas
+                    .filter((p) => p.outlinks.includes(file.path))
+                    .forEach((p) => this.updateNavData(p.file));
+            })
+        );
     }
     async updateNavData(file: TFile) {
         if (this.navboxFiles.includes(file)) {
@@ -61,11 +83,11 @@ export default class ThePlugin extends Plugin {
     loadNavData() {
         this.navboxFiles = this.app.vault
             .getMarkdownFiles()
-            .filter((f) => this.app.metadataCache.getFileCache(f).frontmatter?.navbox);
+            .filter((f) => this.app.metadataCache.getFileCache(f)?.frontmatter?.navbox);
         this.navDatas = [];
         this.navboxFiles.forEach(async (f) => this.navDatas.push(await TFile2NavData(f, this)));
     }
-    checkNavbox(): boolean {
+    checkNavData(): boolean {
         let set = new Set(this.navDatas.map((d) => d.file.path));
         let check = this.navboxFiles.every((f) => set.has(f.path));
         if (!check) this.loadNavData();

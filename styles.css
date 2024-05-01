@@ -1,7 +1,7 @@
 .navbox-div {
     margin-top: 20px;
 }
-.navbox-div .wiki-navbox{
+.navbox-div .wiki-navbox {
     margin-bottom: 20px;
 }
 .navbox-div .wiki-navbox table {
@@ -9,6 +9,7 @@
     border-collapse: collapse;
 }
 .navbox-div .wiki-navbox table thead th {
+    height: 48px;
     text-align: center;
     border: 1px solid var(--table-border-color);
 }
@@ -19,12 +20,20 @@
     border: 1px solid var(--table-border-color);
 }
 .navbox-div .wiki-navbox table tbody tr td:last-child {
-    padding: 0 0 0 14px;
+    padding: 0 14px;
     border: 1px solid var(--table-border-color);
+    vertical-align: middle;
+    word-break: break-word;
+}
+.navbox-div .wiki-navbox table tbody tr td:last-child > div {
+    margin: 10px 0;
 }
 .navbox-div a {
     text-decoration: none;
 }
 .navbox-div a:hover {
     text-decoration: var(--link-decoration);
+}
+.navbox-div .wiki-navbox-separator {
+    margin: 0 7px;
 }
