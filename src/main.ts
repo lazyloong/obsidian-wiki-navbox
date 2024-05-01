@@ -1,4 +1,4 @@
-import { Plugin, TFile, WorkspaceLeaf, MarkdownView, TFolder } from "obsidian";
+import { Plugin, TFile, WorkspaceLeaf, MarkdownView, TFolder, debounce } from "obsidian";
 import NavData from "./data";
 import TFile2NavData from "./parser";
 import NavboxManager from "./manager";
@@ -22,6 +22,7 @@ export default class ThePlugin extends Plugin {
                 this.leafAddManager(leaf);
             });
             this.registerEvent(
+                // 被创建的文件属于某个 navData 的子文件时，更新对应的 navData
                 this.app.vault.on("create", (file) => {
                     if (file instanceof TFolder) return;
                     let file_ = file as TFile;
@@ -44,12 +45,13 @@ export default class ThePlugin extends Plugin {
         );
         this.registerEvent(
             this.app.workspace.on("active-leaf-change", (leaf) => {
-                this.leafAddManager(leaf);
+                this.refreshLeaf(leaf);
             })
         );
+        const debouncedUpdateNavData = debounce(this.updateNavData.bind(this), 1000, true);
         this.registerEvent(
             this.app.metadataCache.on("changed", (file) => {
-                this.updateNavData(file);
+                debouncedUpdateNavData(file);
             })
         );
         this.registerEvent(
@@ -70,15 +72,23 @@ export default class ThePlugin extends Plugin {
         );
     }
     async updateNavData(file: TFile) {
-        if (this.navboxFiles.includes(file)) {
-            this.navDatas = this.navDatas.filter((d) => d.file.path != file.path);
-            if (this.app.metadataCache.getFileCache(file).frontmatter?.navbox)
-                this.navDatas.push(await TFile2NavData(file, this));
-            else this.navboxFiles = this.navboxFiles.filter((f) => f.path != file.path);
-        } else if (this.app.metadataCache.getFileCache(file).frontmatter?.navbox) {
-            this.navboxFiles.push(file);
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        if (fileCache.frontmatter?.navbox) {
+            if (this.navboxFiles.includes(file))
+                this.navDatas = this.navDatas.filter((d) => d.file.path !== file.path);
             this.navDatas.push(await TFile2NavData(file, this));
+        } else if (this.navboxFiles.includes(file)) {
+            this.navDatas = this.navDatas.filter((d) => d.file.path !== file.path);
+            this.navboxFiles = this.navboxFiles.filter((f) => f.path !== file.path);
         }
+        this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
+            let view = leaf.view as MarkdownView;
+            if (
+                this.navboxFiles.includes(view.file) ||
+                this.navDatas.some((d) => d.outlinks.includes(view.file.path))
+            )
+                this.refreshLeaf(leaf);
+        });
     }
     loadNavData() {
         this.navboxFiles = this.app.vault
@@ -103,6 +113,9 @@ export default class ThePlugin extends Plugin {
             view.addChild(manager);
             view.navboxManager = manager;
         }
+    }
+    refreshLeaf(leaf: WorkspaceLeaf) {
+        this.leafAddManager(leaf);
     }
     onunload() {}
     async loadSettings() {
