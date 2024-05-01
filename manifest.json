@@ -1,9 +1,9 @@
 {
-    "id": "obsidian-wiki-navbox",
-    "name": "Obsidian Wiki Navbox",
+    "id": "wiki-navbox",
+    "name": "Wiki Navbox",
     "description": "",
     "author": "lazyloong",
 
     "minAppVersion": "0.11.0",
-    "version": "0.1.0"
+    "version": "0.2.0"
 }
