@@ -1,4 +1,3 @@
-import {} from "obsidian";
 import NavboxManager from "./src/manager";
 
 declare module "obsidian" {
@@ -6,7 +5,7 @@ declare module "obsidian" {
         navboxManager: NavboxManager;
     }
     interface WorkspaceLeaf {
-        openLinkText: (text: string, path: string, file: any) => void;
+        openLinkText: (link: string, currentPath: string, unknown = undefined) => void;
     }
     interface Workspace {
         handleLinkContextMenu: (menu: Menu, path: string, file: any) => void;
@@ -20,7 +19,7 @@ declare module "obsidian" {
         getBasePath: () => string;
     }
     interface Menu {
-        addSections: (sections: string[]) => Menu;
-        setParentElement: (element: HTMLElement) => Menu;
+        addSections: (sections: string[]) => this;
+        setParentElement: (element: HTMLElement) => this;
     }
 }

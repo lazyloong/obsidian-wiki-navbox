@@ -73,7 +73,11 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
                 let tfiles = p.children
                     .map((p) => parseLinktext(p.content))
                     .filter((p) => p)
-                    .map((p) => ({ ...Text2TFile(p.path, app, file), subpath: p?.subpath }))
+                    .map((p) => ({
+                        ...Text2TFile(p.path, app, file),
+                        subpath: p?.subpath,
+                        display: p?.display,
+                    }))
                     .filter((p) => p);
 
                 navListItems.push({
@@ -84,7 +88,8 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
                         name: p.basename,
                         file: p,
                         path: p.path,
-                        display: p.subpath,
+                        display: p.display,
+                        subpath: p.subpath,
                     })),
                 });
             });
@@ -106,7 +111,11 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
             .filter((p) => p.position.start.line < table.position.start.line)
             .slice(-1)[0].heading;
         let tfiles = linkTexts
-            .map((p) => ({ ...Text2TFile(p.path, app, file), subpath: p?.subpath }))
+            .map((p) => ({
+                ...Text2TFile(p.path, app, file),
+                subpath: p?.subpath,
+                display: p?.display,
+            }))
             .filter((p) => p);
 
         navListItems.push({
@@ -117,7 +126,8 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
                 name: p.basename,
                 file: Text2TFile(p.path, app, file),
                 path: p.path,
-                display: p.subpath,
+                display: p.display,
+                subpath: p.subpath,
             })),
         });
     }
@@ -143,4 +153,5 @@ export type ListItemChildren = {
     file?: TFile;
     path?: string;
     display?: string;
+    subpath?: string;
 };

@@ -6,6 +6,7 @@ export default class Link {
     container: HTMLAnchorElement;
     constructor(
         public file: TFile,
+        public subpath: string,
         public display: string,
         public root: HTMLElement,
         public plugin: ThePlugin
@@ -17,7 +18,8 @@ export default class Link {
         let leaf: WorkspaceLeaf;
         if (paneType) leaf = this.plugin.app.workspace.getLeaf(paneType);
         else leaf = this.plugin.app.workspace.getMostRecentLeaf();
-        leaf.openFile(this.file);
+        if (this.subpath) leaf.openLinkText(this.file.path + this.subpath, "");
+        else leaf.openFile(this.file);
     }
     contextMenu(event: MouseEvent): void {
         var menu = new Menu().addSections([
@@ -45,16 +47,15 @@ export default class Link {
     }
     render(): void {
         // `<a data-tooltip-position="top" aria-label="${this.file.basename}" data-href="${this.file.basename}" href="${this.file.basename}" class="internal-link mathLink-internal-link" target="_blank" rel="noopener">${this.navdata.title}</a>`;
-        let link = typeof this.file === "string" ? this.file : this.file.basename;
         this.container = document.createElement("a");
         this.container.dataset.tooltipPosition = "top";
-        this.container.setAttribute("aria-label", link);
-        this.container.dataset.href = link;
-        this.container.href = link;
+        this.container.setAttribute("aria-label", this.file.basename);
+        this.container.dataset.href = this.file.basename;
+        this.container.href = this.file.basename;
         this.container.className = "internal-link mathLink-internal-link";
         this.container.target = "_blank";
         this.container.rel = "noopener";
-        this.container.textContent = this.display ?? link;
+        this.container.textContent = this.display ?? this.file.basename;
 
         this.container.addEventListener("click", this.click.bind(this));
         this.container.addEventListener("contextmenu", this.contextMenu.bind(this));

@@ -27,7 +27,7 @@ export default class NavboxRenderer extends Component {
         let th = tr.createEl("th");
         th.colSpan = 2;
         if (path == file.path) th.createEl("strong", { text: title });
-        else new Link(file, title, th, this.plugin);
+        else new Link(file, null, title, th, this.plugin);
 
         listItems.forEach((listItem) => {
             if (listItem.children.length == 0) return;
@@ -42,8 +42,7 @@ export default class NavboxRenderer extends Component {
                 if (i > 0) td_div.createEl("strong", { cls: "wiki-navbox-separator", text: "·" });
                 if (p?.path == path)
                     td_div.createEl("strong", { text: p.display ?? p.file.basename });
-                else if (p?.file)
-                    new Link(p.file, p.display ?? p.file.basename, td_div, this.plugin);
+                else if (p?.file) new Link(p.file, p.subpath, p.display, td_div, this.plugin);
                 else new UnresolvedLink(p.name, p.display, td_div, this.plugin);
             });
         });

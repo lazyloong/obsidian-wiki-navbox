@@ -1,12 +1,17 @@
 import { App, TFile } from "obsidian";
 
-export function parseLinktext(linktext: string): { path: string; subpath?: string } {
+export function parseLinktext(linktext: string): {
+    path: string;
+    subpath?: string;
+    display?: string;
+} {
     const regex = /\[\[(.+?)(#.*?)?(\|.*?)?\]\]/;
     const match = regex.exec(linktext);
     if (match) {
         const path = match[1];
-        const subpath = match[2] || undefined;
-        return { path, subpath };
+        const subpath = match[2] ?? undefined;
+        const display = match[3]?.slice(1) ?? undefined;
+        return { path, subpath, display };
     }
 }
 

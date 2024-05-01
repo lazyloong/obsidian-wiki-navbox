@@ -30,6 +30,7 @@
 }
 .navbox-div a {
     text-decoration: none;
+    white-space: nowrap;
 }
 .navbox-div a:hover {
     text-decoration: var(--link-decoration);
