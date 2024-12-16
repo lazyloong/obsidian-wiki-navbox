@@ -16,8 +16,8 @@ export default class ThePlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        runOnLayoutReady(() => {
-            this.loadNavData();
+        runOnLayoutReady(async () => {
+            await this.loadNavData();
             this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
                 this.leafAddManager(leaf);
             });
@@ -90,16 +90,19 @@ export default class ThePlugin extends Plugin {
                 this.refreshLeaf(leaf);
         });
     }
-    loadNavData() {
+    async loadNavData() {
         this.navboxFiles = this.app.vault
             .getMarkdownFiles()
             .filter((f) => this.app.metadataCache.getFileCache(f)?.frontmatter?.navbox);
         this.navDatas = [];
-        this.navboxFiles.forEach(async (f) => this.navDatas.push(await TFile2NavData(f, this)));
+        for await (let file of this.navboxFiles)
+            this.navDatas.push(await TFile2NavData(file, this));
     }
     checkNavData(): boolean {
+        if (!this.navDatas) return false;
         let set = new Set(this.navDatas.map((d) => d.file.path));
         let check = this.navboxFiles.every((f) => set.has(f.path));
+        console.log(this.navDatas, this.navboxFiles, check);
         if (!check) this.loadNavData();
         return check;
     }

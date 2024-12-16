@@ -76,7 +76,7 @@ export class UnresolvedLink {
         this.render();
     }
     contextMenu(event: MouseEvent): void {
-        var menu = new Menu().addSections([
+        let menu = new Menu().addSections([
             "title",
             "correction",
             "spellcheck",
@@ -106,16 +106,15 @@ export class UnresolvedLink {
         this.plugin.loadNavData();
     }
     render(): void {
-        let link = this.name;
         this.container = document.createElement("a");
         this.container.dataset.tooltipPosition = "top";
-        this.container.setAttribute("aria-label", link);
-        this.container.dataset.href = link;
-        this.container.href = link;
+        this.container.setAttribute("aria-label", this.name);
+        this.container.dataset.href = this.name;
+        this.container.href = this.name;
         this.container.className = "internal-link mathLink-internal-link is-unresolved";
         this.container.target = "_blank";
         this.container.rel = "noopener";
-        this.container.textContent = this.display ?? link;
+        this.container.textContent = this.display ?? this.name;
         this.container.addEventListener("click", this.click.bind(this));
         this.container.addEventListener("contextmenu", this.contextMenu.bind(this));
         this.root.appendChild(this.container);

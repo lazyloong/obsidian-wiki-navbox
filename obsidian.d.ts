@@ -6,13 +6,35 @@ declare module "obsidian" {
     }
     interface WorkspaceLeaf {
         openLinkText: (link: string, currentPath: string, unknown = undefined) => void;
+        parent: WorkspaceParent;
     }
     interface Workspace {
         handleLinkContextMenu: (menu: Menu, path: string, file: any) => void;
+        editorSuggest: {
+            currentSuggest: EditorSuggest<any> | null;
+            suggests: EditorSuggest<any>[];
+            removeSuggest(suggest: EditorSuggest<any>): void;
+        };
+        createLeafInTabGroup(root: WorkspaceParent): WorkspaceLeaf;
     }
     interface App {
+        hotkeyManager: {
+            printHotkeyForCommand(command_id: string): string;
+            getHotkeys(command_id: string);
+            getDefaultHotkeys(command_id: string);
+        };
+        dom: any;
+        plugins: {
+            plugins: Plugin[];
+        };
         commands: {
             registerCommand(command: string, callback: () => void): void;
+            executeCommand(command: Command);
+            listCommands(): Command[];
+        };
+        setting: {
+            open(): void;
+            openTabById(id: string): { setQuery(query: string): void };
         };
     }
     interface DataAdapter {
@@ -21,5 +43,15 @@ declare module "obsidian" {
     interface Menu {
         addSections: (sections: string[]) => this;
         setParentElement: (element: HTMLElement) => this;
+    }
+    interface MetadataCache {
+        getTags(): { [k: `#${string}`]: number };
+        userIgnoreFilterCache: { [k: string]: boolean };
+    }
+    interface WorkspaceParent {
+        id: string;
+    }
+    interface Scope {
+        keys: any[];
     }
 }

@@ -40,9 +40,9 @@ export default class NavboxRenderer extends Component {
             let td_div = td.createDiv();
             listItem.children.forEach((p, i) => {
                 if (i > 0) td_div.createEl("strong", { cls: "wiki-navbox-separator", text: "·" });
-                if (p?.path == path)
+                if (p.path == path)
                     td_div.createEl("strong", { text: p.display ?? p.file.basename });
-                else if (p?.file) new Link(p.file, p.subpath, p.display, td_div, this.plugin);
+                else if (p.file) new Link(p.file, p.subpath, p.display, td_div, this.plugin);
                 else new UnresolvedLink(p.name, p.display, td_div, this.plugin);
             });
         });

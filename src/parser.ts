@@ -37,7 +37,7 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
                 .filter((p) => p.position.start.line < list[0].position.start.line)
                 .slice(-1)[0].heading;
             let children = linkTexts.map((p) => {
-                let tfile = Text2TFile(p.link, app, file);
+                let tfile = Text2TFile(p.link, file, app);
                 return {
                     file: tfile,
                     display: p?.displayText,
@@ -74,7 +74,7 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
                     .map((p) => parseLinktext(p.content))
                     .filter((p) => p)
                     .map((p) => ({
-                        ...Text2TFile(p.path, app, file),
+                        ...Text2TFile(p.path, file, app),
                         subpath: p?.subpath,
                         display: p?.display,
                     }))
@@ -112,7 +112,7 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
             .slice(-1)[0].heading;
         let tfiles = linkTexts
             .map((p) => ({
-                ...Text2TFile(p.path, app, file),
+                ...Text2TFile(p.path, file, app),
                 subpath: p?.subpath,
                 display: p?.display,
             }))
@@ -124,7 +124,7 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
             outlinks: tfiles.map((p) => p.path),
             children: tfiles.map((p) => ({
                 name: p.basename,
-                file: Text2TFile(p.path, app, file),
+                file: Text2TFile(p.path, file, app),
                 path: p.path,
                 display: p.display,
                 subpath: p.subpath,

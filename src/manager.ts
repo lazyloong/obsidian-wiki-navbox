@@ -21,7 +21,7 @@ export default class NavboxManager extends Component {
     }
     render(file: TFile) {
         this.renderers.forEach((r) => this.removeChild(r));
-        this.plugin.checkNavData();
+        if (!this.plugin.checkNavData()) return;
         let f = () => {
             if (this.getToAddElement()) this.render_(file);
             else setTimeout(f, 10);

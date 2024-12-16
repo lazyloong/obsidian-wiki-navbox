@@ -15,7 +15,7 @@ export function parseLinktext(linktext: string): {
     }
 }
 
-export function Text2TFile(text: string, app: App, file: TFile): TFile {
+export function Text2TFile(text: string, file: TFile, app: App): TFile {
     let tfile = app.metadataCache.getFirstLinkpathDest(text, file.path);
     if (!tfile) return;
     return tfile;
