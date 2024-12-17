@@ -102,7 +102,6 @@ export default class ThePlugin extends Plugin {
         if (!this.navDatas) return false;
         let set = new Set(this.navDatas.map((d) => d.file.path));
         let check = this.navboxFiles.every((f) => set.has(f.path));
-        console.log(this.navDatas, this.navboxFiles, check);
         if (!check) this.loadNavData();
         return check;
     }

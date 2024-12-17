@@ -6,4 +6,5 @@ export default interface NavData {
     listItems: ListItem[];
     outlinks: string[];
     title: string;
+    otherNavbox: string[];
 }

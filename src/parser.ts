@@ -1,7 +1,7 @@
 import { TFile } from "obsidian";
 import ThePlugin from "./main";
 import NavData from "./data";
-import { Text2TFile, parseLinktext, parseTable } from "./utils";
+import { Linktext2TFile, Text2TFile, parseLinktext, parseTable } from "./utils";
 
 export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Promise<NavData> {
     let { app } = plugin;
@@ -132,12 +132,19 @@ export default async function TFile2NavData(file: TFile, plugin: ThePlugin): Pro
         });
     }
 
-    let navbox = app.metadataCache.getFileCache(file).frontmatter?.navbox;
+    const navbox = app.metadataCache.getFileCache(file).frontmatter?.navbox;
+    const otherNavbox_ = app.metadataCache.getFileCache(file).frontmatter?.otherNavbox;
+    let otherNavbox: string[] = [];
+    if (typeof otherNavbox_ == "string")
+        otherNavbox = [Linktext2TFile(otherNavbox_, file, app).path];
+    else if (Array.isArray(otherNavbox_))
+        otherNavbox = otherNavbox_.map((p) => Linktext2TFile(p, file, app).path);
     return {
         file,
         listItems: navListItems.sort((a, b) => a.position - b.position),
         outlinks: navListItems.map((p) => p.outlinks).flat(),
         title: typeof navbox == "string" ? navbox : file.basename,
+        otherNavbox,
     };
 }
 

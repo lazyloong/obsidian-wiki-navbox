@@ -21,6 +21,12 @@ export function Text2TFile(text: string, file: TFile, app: App): TFile {
     return tfile;
 }
 
+export function Linktext2TFile(linktext: string, file: TFile, app: App): TFile {
+    const { path } = parseLinktext(linktext);
+    const tfile = app.metadataCache.getFirstLinkpathDest(path, file.path);
+    return tfile;
+}
+
 export function parseTable(tableText: string): { keys: string[]; rows: string[][] } {
     const lines = tableText.split("\n");
     const headerLine = lines[0];

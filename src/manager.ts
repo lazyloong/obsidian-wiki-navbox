@@ -8,6 +8,7 @@ export default class NavboxManager extends Component {
     observer: SwitchObserver;
     renderers: NavboxRenderer[] = [];
     datas: NavData[] = [];
+    otherDatas: NavData[] = [];
     constructor(public view: MarkdownView, public plugin: ThePlugin) {
         super();
     }
@@ -33,6 +34,13 @@ export default class NavboxManager extends Component {
             (n) => n.outlinks.includes(file.path) || n.file.path == file.path
         );
         this.renderers = this.datas.map((d) => this.addChild(new NavboxRenderer(d, this.plugin)));
+
+        this.otherDatas = this.plugin.navDatas.filter((n) =>
+            this.datas.some((d) => d.otherNavbox.includes(n.file.path))
+        );
+        this.renderers.push(
+            ...this.otherDatas.map((d) => this.addChild(new NavboxRenderer(d, this.plugin)))
+        );
 
         let toAppendElement = this.getToAddElement();
 
